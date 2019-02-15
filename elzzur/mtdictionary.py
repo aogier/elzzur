@@ -107,16 +107,19 @@ class MTDictionary(object):
         :param bool normalize: if ``True``, apply Unicode NFKD + decode to ascii to the dictionary entries
         :param bool ignore_case: if ``True``, ignore case, that is, make all dictionary entries uppercase
         """
-        with io.open(file_path, "r", encoding="utf-8") as f:
-            dictionary = f.read()
-        if normalize:
-            dictionary = unicodedata.normalize("NFKD", dictionary).encode("ascii", "ignore")
-        if ignore_case:
-            dictionary = dictionary.upper()
-        words = []
-        for line in dictionary.split(u"\n"):
-            words.append(line.strip())
-        self.trie = marisa_trie.Trie(words)
+
+        def _generate(file_path, normalize, ignore_case):
+            with io.open(file_path, "r", encoding="utf-8") as f:
+                for line in f:
+                    if normalize:
+                        line = unicodedata.normalize(
+                            "NFKD", line).encode("ascii", "ignore")
+                    if ignore_case:
+                        line = line.upper()
+                    line = line.strip()
+                    yield line.decode("utf-8")
+        self.trie = marisa_trie.Trie(
+            _generate(file_path, normalize, ignore_case))
 
     def save_marisa_trie(self, file_path):
         """
